@@ -1,39 +1,101 @@
-<!-- 
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# jaguar_jwt_lite
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages). 
+Stripped some functions, updated deps.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages). 
--->
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+# jaguar_jwt
 
-## Features
+JWT utilities for Dart and Jaguar.dart
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+This library can be used to generate and process JSON Web Tokens (JWT).
+For more information about JSON Web Tokens, see
+[RFC 7519](https://tools.ietf.org/html/rfc7519).
 
-## Getting started
+Currently, only the HMAC SHA-256 algorithm is supported to generate/process
+a JSON Web Signature (JWS).
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+# Usage
 
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
+## Issuing a JWT
 
 ```dart
-const like = 'sample';
+  final key = 's3cr3t';
+  final claimSet = JwtClaim(
+      subject: 'kleak',
+      issuer: 'teja',
+      audience: <String>['audience1.example.com', 'audience2.example.com'],
+      otherClaims: <String,dynamic>{
+        'typ': 'authnresponse',
+        'pld': {'k': 'v'}},
+      maxAge: const Duration(minutes: 5));
+
+  String token = issueJwtHS256(claimSet, key);
+  print(token);
 ```
 
-## Additional information
+## Processing a JWT
 
-TODO: Tell users more about the package: where to find more information, how to 
-contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
+To process a JWT:
+
+1. Verify the signature and extract the claim set.
+2. Validate the claim set.
+3. Extract claims from the claim set.
+
+```dart
+  try {
+    final JwtClaim decClaimSet = verifyJwtHS256Signature(token, key);
+    // print(decClaimSet);
+
+    decClaimSet.validate(issuer: 'teja', audience: 'audience1.example.com');
+
+    if (claimSet.jwtId != null) {
+       print(claimSet.jwtId);
+    }
+    if (claimSet.containsKey('typ')) {
+      final v = claimSet['typ'];
+      if (v is String) {
+         print(v);
+      } else {
+        ...
+      }
+    }
+
+    ...
+  } on JwtException {
+    ...
+  }
+```
+
+# Configuration
+
+## JwtClaimSet
+
+`JwtClaimSet` is the model to holds JWT claim set information.
+
+These are the registered claims:
+
+1. `issuer`  
+Authority issuing the token. This will be used during authorization to verify that expected issuer has 
+issued the token.
+Fills the `iss` field of the JWT.
+2. `subject`  
+Subject of the token. Usually stores the user ID of the user to which the token is issued.
+Fills the `sub` field of the JWT.
+3. `audience`  
+List of audience that accept this token. This will be used during authorization to verify that 
+JWT has expected audience for the service.
+Fills `aud` field in JWT.
+4. `expiry`  
+Time when the token becomes no longer acceptable for process.
+Fills `exp` field in JWT.
+5. `notBefore`  
+Time when the token becomes acceptable for processing.
+Fills the `nbf` field in the JWT.
+6. `issuedAt`  
+Time when the token was issued.
+Fills the `iat` field in the JWT.
+7. `jwtId`  
+Unique identifier across services that identifies the token.
+Fills `jti` field in JWT.
+
+Additional claims may also be included in the JWT.
