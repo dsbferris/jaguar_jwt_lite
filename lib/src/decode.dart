@@ -118,8 +118,7 @@ JwtClaim decodeAndVerifyHS256(
     final dynamic header = json.decode(headerString);
     if (header is Map) {
       // Perform any custom checks on the header
-      if (headerCheck != null &&
-          !headerCheck(header.cast<String, dynamic?>())) {
+      if (headerCheck != null && !headerCheck(header.cast<String, dynamic>())) {
         throw JwtException.invalidToken;
       }
 
