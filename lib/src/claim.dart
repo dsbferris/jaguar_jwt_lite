@@ -59,17 +59,6 @@ class JwtClaim {
   /// either a scalar (i.e. null, bool, int, double or String), a List, or
   /// [Map<String,Object>]. The otherClaims parameter cannot be used to set
   /// registered claims, only non-registered claims.
-  ///
-  /// To include a 'pld' claim, use the [otherClaims] parameter. The use of both
-  /// mechanisms at the same time (to provide two 'pld' claims) is not permitted.
-  ///
-  /// Normally, the _Issued At Claim_ and _Expiration Time Claim_ are both
-  /// assigned default values if they are not provided.
-  /// If [issuedAt] is not specified, the current time is used.
-  /// If [expiry] is not specified, [maxAge] after the _Issued At Claim_ is used.
-  /// This default behaviour can be disabled by setting [defaultIatExp] to
-  /// false. When set to false, the _Issued At Claim_ and and _Expiration Time
-  /// Claim_ are only set if they are explicitly provided.
   JwtClaim({
     this.issuer,
     this.subject,
@@ -79,20 +68,9 @@ class JwtClaim {
     DateTime? issuedAt,
     this.jwtId,
     Map<String, dynamic>? otherClaims,
-    Map<String, dynamic>? payload,
-    bool defaultIatExp = true,
-    Duration? maxAge,
-  }) : issuedAt =
-           issuedAt?.toUtc() ??
-           ((defaultIatExp) ? DateTime.now().toUtc() : null),
+  }) : issuedAt = issuedAt?.toUtc(),
        notBefore = notBefore?.toUtc(),
-       expiry =
-           expiry?.toUtc() ??
-           ((defaultIatExp)
-               ? ((issuedAt?.toUtc() ?? DateTime.now().toUtc()).add(
-                 maxAge ?? defaultMaxAge,
-               ))
-               : null) {
+       expiry = expiry?.toUtc() {
     // Check and record any non-registered claims
     if (otherClaims != null) {
       // Check otherClaims does not contain any registered claims.
@@ -108,27 +86,12 @@ class JwtClaim {
       }
       _otherClaims.addAll(otherClaims);
     }
-
-    // Treat the payload parameter as a way to provide a claim named 'pld'
-    if (payload != null) {
-      _otherClaims[_payloadClaimName] = payload;
-    }
   }
 
   /// Constructs a claim set from a Map of claims.
   ///
-  /// Normally, the _Issued At_ and _Expiration Time Claims_ will always be set.
-  /// If they are not present in the [data], default values are assigned to
-  /// them. This behaviour is disabled when [defaultIatExp] is false.
-  /// See the [JwtClaim] constructor for details of how [defaultIatExp]
-  /// and [maxAge] control these default values.
-  ///
   /// Throws [JwtException.invalidToken] if the Map is not suitable.
-  factory JwtClaim.fromMap(
-    Map<dynamic, dynamic> data, {
-    bool defaultIatExp = true,
-    Duration? maxAge,
-  }) {
+  factory JwtClaim.fromMap(Map<dynamic, dynamic> data) {
     final singleStringValue = <String, String>{};
     for (var claimName in ['iss', 'sub', 'jti']) {
       if (data.containsKey(claimName)) {
@@ -190,8 +153,6 @@ class JwtClaim {
       issuedAt: issuedAtOrNull,
       jwtId: singleStringValue['jti'],
       otherClaims: (others.isNotEmpty) ? others : null,
-      defaultIatExp: defaultIatExp,
-      maxAge: maxAge,
     );
   }
 
@@ -348,17 +309,6 @@ class JwtClaim {
     }
   }
 
-  /// The payload (pld) claim.
-  Map<String, dynamic> get payload {
-    final pld = _otherClaims[_payloadClaimName];
-
-    if (pld is Map<String, dynamic> || pld == null) {
-      return pld as Map<String, dynamic>;
-    }
-
-    throw Exception('Invalid payload type found in the JWT token!');
-  }
-
   /// Validates the JWT claim set.
   ///
   /// Checks the for the [issuer] and [audience] and validates the Expiration
@@ -505,14 +455,4 @@ class JwtClaim {
     'iat',
     'jti',
   ];
-
-  /// Default duration between issued time and expiry time.
-  ///
-  /// Used to generate a value for Expiry when creating a claim set and no
-  /// explicit value for Expiry is provided (and the generation of a default
-  /// value has not been disabled).
-  static const Duration defaultMaxAge = Duration(days: 1);
-
-  /// Claim Name for the legacy payload claim.
-  static const String _payloadClaimName = 'pld';
 }
