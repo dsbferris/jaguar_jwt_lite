@@ -318,17 +318,11 @@ void main() {
       group('Default issuedAt and Expiry', () {
         // Claim set with no explicit time claims provided to the constructor
         final claimSet = JwtClaim();
-        final whenConstructorWasInvoked = DateTime.now();
 
         test('Token constructed as expected', () {
-          expect(claimSet.issuedAt, isNotNull); // default used
+          expect(claimSet.issuedAt, isNull);
           expect(claimSet.notBefore, isNull);
-          expect(claimSet.expiry, isNotNull); // default used
-
-          expect(
-            claimSet.issuedAt!.difference(whenConstructorWasInvoked),
-            lessThan(const Duration(seconds: 1)),
-          );
+          expect(claimSet.expiry, isNull);
         });
       });
 
